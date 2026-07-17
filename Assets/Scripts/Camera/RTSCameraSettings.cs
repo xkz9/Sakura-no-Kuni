@@ -32,4 +32,8 @@ public class RTSCameraSettings : ScriptableObject
 
     [Tooltip("Highest height (local Y) the camera can reach when zoomed out.")]
     public float maxCameraHeight = 25f;
+
+    [Header("Rotation")]
+    [Tooltip("How fast the camera rotates when using Q and E (degrees per second).")]
+    public float rotationSpeed = 105f;
 }

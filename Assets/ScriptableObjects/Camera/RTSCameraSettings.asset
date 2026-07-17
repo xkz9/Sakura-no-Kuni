@@ -19,3 +19,4 @@ MonoBehaviour:
   zoomSpeed: 5
   minCameraHeight: 8
   maxCameraHeight: 25
+  rotationSpeed: 105

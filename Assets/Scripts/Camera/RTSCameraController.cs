@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// Moves the RTS camera based on input and settings.
 /// Pan moves RTSCameraRig on the X/Z plane. Zoom moves the camera child up and down.
+/// Rotation turns RTSCameraRig on the Y axis.
 /// Attach this to RTSCameraRig alongside RTSCameraInput.
 /// </summary>
 public class RTSCameraController : MonoBehaviour
@@ -12,7 +13,7 @@ public class RTSCameraController : MonoBehaviour
     [Tooltip("Drag Assets/ScriptableObjects/Camera/RTSCameraSettings here.")]
     [SerializeField] private RTSCameraSettings settings;
 
-    [Tooltip("Reads Pan and Zoom from the Input Actions asset.")]
+    [Tooltip("Reads Pan, Zoom, and Rotate from the Input Actions asset.")]
     [SerializeField] private RTSCameraInput cameraInput;
 
     [Tooltip("Drag the Main Camera child object here.")]
@@ -51,6 +52,7 @@ public class RTSCameraController : MonoBehaviour
 
         ApplyPan();
         ApplyZoom();
+        ApplyRotation();
     }
 
     /// <summary>
@@ -161,5 +163,21 @@ public class RTSCameraController : MonoBehaviour
             settings.maxCameraHeight);
 
         cameraTransform.localPosition = localPosition;
+    }
+
+    /// <summary>
+    /// Rotates the rig left or right using Q and E.
+    /// Only the Y axis changes — position and camera tilt stay the same.
+    /// </summary>
+    private void ApplyRotation()
+    {
+        float rotateInput = cameraInput.RotateInput;
+        if (Mathf.Abs(rotateInput) < 0.001f)
+        {
+            return;
+        }
+
+        float rotationAmount = rotateInput * settings.rotationSpeed * Time.deltaTime;
+        transform.Rotate(0f, rotationAmount, 0f);
     }
 }

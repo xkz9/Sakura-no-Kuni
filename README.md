@@ -37,7 +37,7 @@ Unity 6 (URP)
 
 Prototype 1 (in progress)
 
-✓ RTS Camera
+✓ RTS Camera — pan (WASD / arrows), edge scroll, zoom, rotation (Q / E)
 
 ⬜ Terrain
 
@@ -50,7 +50,3 @@ Prototype 1 (in progress)
 ⬜ One farm
 
 ⬜ Basic villagers
-
-After Prototype 1 MVP
-
-⬜ Camera rotation (Q / E)

@@ -514,6 +514,8 @@ Mouse edge scroll
 
 Scroll wheel zoom
 
+Q / E rotation
+
 RTSCameraRig hierarchy
 
 RTSCameraController
@@ -535,18 +537,6 @@ RTSCameraInputActions
 ⬜ One farm
 
 ⬜ Basic villagers
-
----
-
-## After Prototype 1 MVP
-
-Camera:
-
-⬜ Rotation (Q / E)
-
-Rotate the view to see around obstacles and place roads between buildings.
-
-Add after the first playable village is complete.
 
 ---
 
@@ -590,6 +580,8 @@ Add:
 
 # Current Development Stage
 
-Prototype 1 — Camera complete
+Prototype 1 — Camera complete (pan, edge scroll, zoom, rotation)
+
+All camera features tested and working in Play Mode.
 
 Next: Terrain
