@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// Moves the RTS camera based on input and settings.
@@ -56,35 +55,18 @@ public class RTSCameraController : MonoBehaviour
     }
 
     /// <summary>
-    /// Moves the rig horizontally using keyboard/arrows and optional edge scrolling.
+    /// Moves the rig horizontally using keyboard and arrow keys.
     /// </summary>
     private void ApplyPan()
     {
-        Vector3 movement = Vector3.zero;
-
-        // Keyboard and arrow keys (from RTSCameraInput).
         Vector2 keyboardPan = cameraInput.PanInput;
-        if (keyboardPan.sqrMagnitude > 0.001f)
-        {
-            movement += GetWorldPanDirection(keyboardPan) * settings.keyboardPanSpeed;
-        }
-
-        // Edge scrolling uses mouse screen position (not in the Input Actions asset).
-        if (settings.edgeScrollEnabled)
-        {
-            Vector2 edgePan = GetEdgeScrollInput();
-            if (edgePan.sqrMagnitude > 0.001f)
-            {
-                movement += GetWorldPanDirection(edgePan) * settings.edgeScrollSpeed;
-            }
-        }
-
-        if (movement.sqrMagnitude < 0.001f)
+        if (keyboardPan.sqrMagnitude < 0.001f)
         {
             return;
         }
 
-        // Move on the ground plane only (X and Z).
+        Vector3 movement = GetWorldPanDirection(keyboardPan) * settings.keyboardPanSpeed;
+
         Vector3 newPosition = transform.position + movement * Time.deltaTime;
         newPosition.y = transform.position.y;
         transform.position = newPosition;
@@ -105,41 +87,6 @@ public class RTSCameraController : MonoBehaviour
         right.Normalize();
 
         return (right * input.x + forward * input.y).normalized;
-    }
-
-    /// <summary>
-    /// Returns pan direction when the mouse is near the screen edge.
-    /// </summary>
-    private Vector2 GetEdgeScrollInput()
-    {
-        if (Mouse.current == null)
-        {
-            return Vector2.zero;
-        }
-
-        Vector2 mousePosition = Mouse.current.position.ReadValue();
-        float margin = settings.edgeScrollMargin;
-        Vector2 edgePan = Vector2.zero;
-
-        if (mousePosition.x < margin)
-        {
-            edgePan.x = -1f;
-        }
-        else if (mousePosition.x > Screen.width - margin)
-        {
-            edgePan.x = 1f;
-        }
-
-        if (mousePosition.y < margin)
-        {
-            edgePan.y = -1f;
-        }
-        else if (mousePosition.y > Screen.height - margin)
-        {
-            edgePan.y = 1f;
-        }
-
-        return edgePan.normalized;
     }
 
     /// <summary>

@@ -36,6 +36,10 @@ public class WorldSettings : ScriptableObject
     [Tooltip("Frequency multiplier for each octave.")]
     public float lacunarity = 2f;
 
+    [Tooltip("Scales final height (0-1). Lower values keep hills gentle.")]
+    [Range(0.05f, 1f)]
+    public float heightMultiplier = 0.35f;
+
     [Header("Start Location")]
     [Tooltip("Radius around the castle where trees and rocks should not spawn.")]
     public float castleClearRadius = 30f;

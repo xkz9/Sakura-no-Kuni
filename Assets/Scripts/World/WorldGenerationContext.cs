@@ -13,6 +13,7 @@ public class WorldGenerationContext
 
     public Transform WorldRoot { get; set; }
     public Terrain Terrain { get; set; }
+    public float[,] Heightmap { get; set; }
     public Vector3 StartPosition { get; set; }
     public float StartRotation { get; set; }
     public Transform CastleOrigin { get; set; }

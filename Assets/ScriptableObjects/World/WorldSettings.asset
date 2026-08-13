@@ -20,6 +20,7 @@ MonoBehaviour:
   octaves: 4
   persistence: 0.5
   lacunarity: 2
+  heightMultiplier: 0.35
   castleClearRadius: 30
   expansionRadius: 80
   minBuildableCoverage: 0.6

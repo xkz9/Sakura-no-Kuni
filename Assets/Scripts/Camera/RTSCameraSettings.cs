@@ -13,16 +13,6 @@ public class RTSCameraSettings : ScriptableObject
     [Tooltip("How fast the camera moves when using WASD or arrow keys.")]
     public float keyboardPanSpeed = 20f;
 
-    [Header("Pan - Edge Scroll")]
-    [Tooltip("When enabled, moving the mouse to the screen edge pans the camera.")]
-    public bool edgeScrollEnabled = true;
-
-    [Tooltip("How fast the camera moves when edge scrolling.")]
-    public float edgeScrollSpeed = 20f;
-
-    [Tooltip("Distance in pixels from the screen edge that triggers edge scrolling.")]
-    public float edgeScrollMargin = 20f;
-
     [Header("Zoom")]
     [Tooltip("How fast the camera zooms when using the scroll wheel.")]
     public float zoomSpeed = 5f;

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Orchestrates procedural world generation.
@@ -17,7 +18,6 @@ public class WorldGenerator : MonoBehaviour
 
     /// <summary>
     /// Generates a world from the given seed.
-    /// Later phases will add terrain, castle placement, and environment scattering.
     /// </summary>
     public WorldData GenerateWorld(int seed)
     {
@@ -27,12 +27,31 @@ public class WorldGenerator : MonoBehaviour
             return null;
         }
 
+        if (settings.terrainResolution < 33)
+        {
+            Debug.LogError("WorldGenerator: terrainResolution must be at least 33 on WorldSettings.", this);
+            return null;
+        }
+
         ClearCurrentWorld();
 
         WorldGenerationContext context = new WorldGenerationContext(seed, settings);
         context.WorldRoot = CreateGeneratedWorldRoot();
 
-        // Phase 2+: TerrainGenerator, StartLocationFinder, CastlePlacer, EnvironmentGenerator.
+        if (context.WorldRoot == null)
+        {
+            Debug.LogError("WorldGenerator: Failed to create GeneratedWorld root.", this);
+            return null;
+        }
+
+        new TerrainGenerator().Generate(context);
+
+        if (context.Terrain == null)
+        {
+            Debug.LogError("WorldGenerator: Terrain was not created.", this);
+            ClearCurrentWorld();
+            return null;
+        }
 
         WorldData worldData = CreateWorldDataFromContext(context);
         CurrentWorld = worldData;
@@ -44,7 +63,7 @@ public class WorldGenerator : MonoBehaviour
     /// <summary>Picks a random seed and generates a new world.</summary>
     public WorldData GenerateRandomWorld()
     {
-        int seed = UnityEngine.Random.Range(1, int.MaxValue);
+        int seed = new System.Random().Next(1, int.MaxValue);
         return GenerateWorld(seed);
     }
 
@@ -52,21 +71,36 @@ public class WorldGenerator : MonoBehaviour
     {
         if (CurrentWorld?.WorldRoot != null)
         {
-            Destroy(CurrentWorld.WorldRoot.gameObject);
+            DestroyGeneratedObject(CurrentWorld.WorldRoot.gameObject);
         }
 
         CurrentWorld = null;
 
-        GameObject leftoverRoot = GameObject.Find(GeneratedWorldObjectName);
-        if (leftoverRoot != null)
+        for (int i = transform.childCount - 1; i >= 0; i--)
         {
-            Destroy(leftoverRoot);
+            Transform child = transform.GetChild(i);
+            if (child.name == GeneratedWorldObjectName)
+            {
+                DestroyGeneratedObject(child.gameObject);
+            }
+        }
+
+        foreach (GameObject rootObject in SceneManager.GetActiveScene().GetRootGameObjects())
+        {
+            if (rootObject.name == GeneratedWorldObjectName && rootObject.transform.parent == null)
+            {
+                DestroyGeneratedObject(rootObject);
+            }
         }
     }
 
     private Transform CreateGeneratedWorldRoot()
     {
         GameObject worldRootObject = new GameObject(GeneratedWorldObjectName);
+        worldRootObject.transform.SetParent(transform, false);
+        worldRootObject.transform.localPosition = Vector3.zero;
+        worldRootObject.transform.localRotation = Quaternion.identity;
+        worldRootObject.transform.localScale = Vector3.one;
         return worldRootObject.transform;
     }
 
@@ -81,6 +115,23 @@ public class WorldGenerator : MonoBehaviour
             context.CastleOrigin,
             context.Settings.castleClearRadius,
             context.Settings.expansionRadius);
+    }
+
+    private void DestroyGeneratedObject(GameObject target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(target);
+        }
+        else
+        {
+            DestroyImmediate(target);
+        }
     }
 
 #if UNITY_EDITOR
