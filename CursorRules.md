@@ -152,11 +152,9 @@ Consider:
 
 Prototype 1 — Camera complete
 
-Next: Terrain, Grid, Building placement, House, Rice Farm, Basic villagers
+Next: Terrain, Grid, Building placement, Clan Manor (Level 1 castle), Rice Farm, Basic villagers
 
 Do not add advanced systems until Prototype 1 is complete.
-
-Camera rotation (Q / E) comes after Prototype 1 MVP.
 
 ---
 
@@ -166,15 +164,15 @@ Camera (Prototype 1)
 
 RTSCameraRig hierarchy in SampleScene
 
-RTSCameraController — pan and zoom
+RTSCameraController — pan, zoom, and rotation
 
 RTSCameraInput — reads Input Actions asset
 
 RTSCameraSettings — ScriptableObject for speeds and limits
 
-RTSCameraInputActions — Pan (Vector2), Zoom (float)
+RTSCameraInputActions — Pan (Vector2), Zoom (float), Rotate (float)
 
-Controls: WASD, arrow keys, edge scroll, scroll wheel
+Controls: WASD, arrow keys, edge scroll, scroll wheel, Q / E rotation
 
-Not yet added: rotation, map bounds, minimap, cinematics
+Not yet added: map bounds, minimap, cinematics
 

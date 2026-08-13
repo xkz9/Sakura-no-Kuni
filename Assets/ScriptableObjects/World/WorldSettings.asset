@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7f3c9e2b1d84f6a8c0e2d4b6f810324, type: 3}
+  m_Name: WorldSettings
+  m_EditorClassIdentifier: 
+  mapSize: 256
+  maxTerrainHeight: 60
+  terrainResolution: 513
+  defaultSeed: 42
+  noiseScale: 0.01
+  octaves: 4
+  persistence: 0.5
+  lacunarity: 2
+  castleClearRadius: 30
+  expansionRadius: 80
+  minBuildableCoverage: 0.6
+  searchSampleCount: 150
+  maxBuildableSlope: 15
+  treeCount: 80
+  rockCount: 30
+  minEnvironmentSpacing: 4
+  environmentSpawnMargin: 10
+  castlePlaceholderPrefab: {fileID: 0}
+  treePrefabs: []
+  rockPrefabs: []
