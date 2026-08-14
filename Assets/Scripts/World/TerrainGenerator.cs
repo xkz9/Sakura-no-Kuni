@@ -25,8 +25,8 @@ public class TerrainGenerator
             return;
         }
 
-        float noiseOffsetX = (float)(context.SeededRandom.NextDouble() * 100_000d);
-        float noiseOffsetZ = (float)(context.SeededRandom.NextDouble() * 100_000d);
+        float noiseOffsetX = GetDeterministicNoiseOffset(context.Seed, 101);
+        float noiseOffsetZ = GetDeterministicNoiseOffset(context.Seed, 202);
 
         float[,] heights = BuildHeightmap(settings, resolution, noiseOffsetX, noiseOffsetZ);
 
@@ -51,7 +51,10 @@ public class TerrainGenerator
         context.Terrain = terrainObject.GetComponent<Terrain>();
         context.Heightmap = heights;
 
-        Debug.Log($"TerrainGenerator: Created '{TerrainObjectName}' under '{context.WorldRoot.name}'.", terrainObject);
+        int center = resolution / 2;
+        Debug.Log(
+            $"TerrainGenerator: seed={context.Seed}, centerHeight={heights[center, center]:F4}, offsets=({noiseOffsetX:F1}, {noiseOffsetZ:F1})",
+            terrainObject);
     }
 
     private static float[,] BuildHeightmap(
@@ -101,5 +104,23 @@ public class TerrainGenerator
 
         float normalized = amplitudeSum > 0f ? noiseSum / amplitudeSum : 0f;
         return Mathf.Clamp01(normalized * settings.heightMultiplier);
+    }
+
+    /// <summary>
+    /// Converts seed + salt into a stable float offset. Same seed always gives the same value.
+    /// </summary>
+    private static float GetDeterministicNoiseOffset(int seed, int salt)
+    {
+        unchecked
+        {
+            uint hash = (uint)seed;
+            hash ^= (uint)salt * 0x9E3779B9u;
+            hash ^= hash >> 16;
+            hash *= 0x85EBCA6Bu;
+            hash ^= hash >> 13;
+            hash *= 0xC2B2AE35u;
+            hash ^= hash >> 16;
+            return (hash / (float)uint.MaxValue) * 100_000f;
+        }
     }
 }

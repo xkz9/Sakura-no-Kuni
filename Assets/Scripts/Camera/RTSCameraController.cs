@@ -20,7 +20,6 @@ public class RTSCameraController : MonoBehaviour
 
     private void Awake()
     {
-        // Auto-find RTSCameraInput on the same GameObject if not assigned.
         if (cameraInput == null)
         {
             cameraInput = GetComponent<RTSCameraInput>();
@@ -54,9 +53,6 @@ public class RTSCameraController : MonoBehaviour
         ApplyRotation();
     }
 
-    /// <summary>
-    /// Moves the rig horizontally using keyboard and arrow keys.
-    /// </summary>
     private void ApplyPan()
     {
         Vector2 keyboardPan = cameraInput.PanInput;
@@ -72,10 +68,6 @@ public class RTSCameraController : MonoBehaviour
         transform.position = newPosition;
     }
 
-    /// <summary>
-    /// Converts 2D input (x = strafe, y = forward) into a world direction
-    /// based on which way the rig is currently facing.
-    /// </summary>
     private Vector3 GetWorldPanDirection(Vector2 input)
     {
         Vector3 forward = transform.forward;
@@ -89,9 +81,6 @@ public class RTSCameraController : MonoBehaviour
         return (right * input.x + forward * input.y).normalized;
     }
 
-    /// <summary>
-    /// Zooms by changing the camera child's local Y position (height).
-    /// </summary>
     private void ApplyZoom()
     {
         float zoomInput = cameraInput.ZoomInput;
@@ -101,9 +90,26 @@ public class RTSCameraController : MonoBehaviour
         }
 
         Vector3 localPosition = cameraTransform.localPosition;
-
-        // Scroll values are already per-frame, so we do not multiply by Time.deltaTime.
         localPosition.y -= zoomInput * settings.zoomSpeed;
+        localPosition.y = Mathf.Clamp(
+            localPosition.y,
+            settings.minCameraHeight,
+            settings.maxCameraHeight);
+
+        cameraTransform.localPosition = localPosition;
+        PreventCameraClippingThroughTerrain();
+    }
+
+    private void PreventCameraClippingThroughTerrain()
+    {
+        float minimumWorldHeight = GetMinimumAllowedCameraWorldHeight();
+        if (cameraTransform.position.y >= minimumWorldHeight)
+        {
+            return;
+        }
+
+        Vector3 localPosition = cameraTransform.localPosition;
+        localPosition.y += minimumWorldHeight - cameraTransform.position.y;
         localPosition.y = Mathf.Clamp(
             localPosition.y,
             settings.minCameraHeight,
@@ -112,10 +118,53 @@ public class RTSCameraController : MonoBehaviour
         cameraTransform.localPosition = localPosition;
     }
 
-    /// <summary>
-    /// Rotates the rig left or right using Q and E.
-    /// Only the Y axis changes — position and camera tilt stay the same.
-    /// </summary>
+    private float GetMinimumAllowedCameraWorldHeight()
+    {
+        float rigGroundHeight = SampleTerrainHeight(transform.position.x, transform.position.z);
+        float cameraGroundHeight = SampleTerrainHeight(cameraTransform.position.x, cameraTransform.position.z);
+        float groundHeight = Mathf.Max(rigGroundHeight, cameraGroundHeight);
+
+        return groundHeight + settings.minClearanceAboveGround;
+    }
+
+    private static float SampleTerrainHeight(float worldX, float worldZ)
+    {
+        Terrain[] terrains = Terrain.activeTerrains;
+        if (terrains == null || terrains.Length == 0)
+        {
+            return 0f;
+        }
+
+        Vector3 samplePosition = new Vector3(worldX, 0f, worldZ);
+        float highestPoint = float.MinValue;
+        bool foundTerrain = false;
+
+        for (int i = 0; i < terrains.Length; i++)
+        {
+            Terrain terrain = terrains[i];
+            if (terrain == null)
+            {
+                continue;
+            }
+
+            Vector3 terrainPosition = terrain.transform.position;
+            Vector3 terrainSize = terrain.terrainData.size;
+
+            if (samplePosition.x < terrainPosition.x ||
+                samplePosition.x > terrainPosition.x + terrainSize.x ||
+                samplePosition.z < terrainPosition.z ||
+                samplePosition.z > terrainPosition.z + terrainSize.z)
+            {
+                continue;
+            }
+
+            highestPoint = Mathf.Max(highestPoint, terrain.SampleHeight(samplePosition));
+            foundTerrain = true;
+        }
+
+        return foundTerrain ? highestPoint : 0f;
+    }
+
     private void ApplyRotation()
     {
         float rotateInput = cameraInput.RotateInput;

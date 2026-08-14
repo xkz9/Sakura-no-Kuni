@@ -64,6 +64,7 @@ public class WorldGenerator : MonoBehaviour
     public WorldData GenerateRandomWorld()
     {
         int seed = new System.Random().Next(1, int.MaxValue);
+        Debug.Log($"WorldGenerator: Random seed chosen = {seed}.", this);
         return GenerateWorld(seed);
     }
 
@@ -124,14 +125,9 @@ public class WorldGenerator : MonoBehaviour
             return;
         }
 
-        if (Application.isPlaying)
-        {
-            Destroy(target);
-        }
-        else
-        {
-            DestroyImmediate(target);
-        }
+        // Use DestroyImmediate so the old terrain is gone before we build the new one.
+        // Destroy() in Play mode waits until end of frame, which caused mismatched / overlapping terrain.
+        DestroyImmediate(target);
     }
 
 #if UNITY_EDITOR
@@ -144,6 +140,7 @@ public class WorldGenerator : MonoBehaviour
             return;
         }
 
+        Debug.Log($"WorldGenerator: Using default seed {settings.defaultSeed}.", this);
         GenerateWorld(settings.defaultSeed);
     }
 

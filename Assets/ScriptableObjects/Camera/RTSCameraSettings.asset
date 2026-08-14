@@ -18,5 +18,6 @@ MonoBehaviour:
   edgeScrollMargin: 20
   zoomSpeed: 5
   minCameraHeight: 8
-  maxCameraHeight: 25
+  maxCameraHeight: 200
+  minClearanceAboveGround: 5
   rotationSpeed: 105

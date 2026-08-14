@@ -17,11 +17,14 @@ public class RTSCameraSettings : ScriptableObject
     [Tooltip("How fast the camera zooms when using the scroll wheel.")]
     public float zoomSpeed = 5f;
 
-    [Tooltip("Lowest height (local Y) the camera can reach when zoomed in.")]
+    [Tooltip("Lowest height (local Y) the camera can reach when there is no terrain.")]
     public float minCameraHeight = 8f;
 
     [Tooltip("Highest height (local Y) the camera can reach when zoomed out.")]
-    public float maxCameraHeight = 25f;
+    public float maxCameraHeight = 200f;
+
+    [Tooltip("How far above the ground the camera must stay when zooming in over hills.")]
+    public float minClearanceAboveGround = 5f;
 
     [Header("Rotation")]
     [Tooltip("How fast the camera rotates when using Q and E (degrees per second).")]
