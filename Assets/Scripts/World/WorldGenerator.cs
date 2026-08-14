@@ -53,6 +53,8 @@ public class WorldGenerator : MonoBehaviour
             return null;
         }
 
+        new EnvironmentGenerator().Generate(context);
+
         WorldData worldData = CreateWorldDataFromContext(context);
         CurrentWorld = worldData;
 

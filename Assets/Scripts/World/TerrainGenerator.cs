@@ -1,12 +1,12 @@
 using UnityEngine;
 
 /// <summary>
-/// Generates a Unity Terrain with a seeded procedural heightmap.
-/// Phase 2 only — no biomes, water, resources, or decoration.
+/// Generates stepped terrain with small flat-topped tiles.
 /// </summary>
 public class TerrainGenerator
 {
     private const string TerrainObjectName = "Terrain";
+    private const float LowlandBumpThreshold = 0.72f;
 
     public void Generate(WorldGenerationContext context)
     {
@@ -25,10 +25,13 @@ public class TerrainGenerator
             return;
         }
 
-        float noiseOffsetX = GetDeterministicNoiseOffset(context.Seed, 101);
-        float noiseOffsetZ = GetDeterministicNoiseOffset(context.Seed, 202);
+        if (settings.terrainBlockSize < 2)
+        {
+            Debug.LogError("TerrainGenerator: terrainBlockSize must be at least 2.");
+            return;
+        }
 
-        float[,] heights = BuildHeightmap(settings, resolution, noiseOffsetX, noiseOffsetZ);
+        float[,] heights = BuildHeightmap(context.Seed, settings, resolution);
 
         TerrainData terrainData = new TerrainData
         {
@@ -42,73 +45,297 @@ public class TerrainGenerator
         terrainObject.name = TerrainObjectName;
         terrainObject.transform.SetParent(context.WorldRoot, false);
 
-        // Unity terrain grows from its pivot toward +X and +Z. Offset so the map is centered on WorldGenerator.
         float halfMapSize = settings.mapSize * 0.5f;
         terrainObject.transform.localPosition = new Vector3(-halfMapSize, 0f, -halfMapSize);
         terrainObject.transform.localRotation = Quaternion.identity;
         terrainObject.transform.localScale = Vector3.one;
 
-        context.Terrain = terrainObject.GetComponent<Terrain>();
+        Terrain terrain = terrainObject.GetComponent<Terrain>();
+        ApplyTerrainLodSettings(terrain, settings);
+
+        context.Terrain = terrain;
         context.Heightmap = heights;
 
         int center = resolution / 2;
         Debug.Log(
-            $"TerrainGenerator: seed={context.Seed}, centerHeight={heights[center, center]:F4}, offsets=({noiseOffsetX:F1}, {noiseOffsetZ:F1})",
+            $"TerrainGenerator: seed={context.Seed}, centerHeight={heights[center, center]:F4}, style=stepped-tiles",
             terrainObject);
     }
 
-    private static float[,] BuildHeightmap(
-        WorldSettings settings,
-        int resolution,
-        float noiseOffsetX,
-        float noiseOffsetZ)
+    private static void ApplyTerrainLodSettings(Terrain terrain, WorldSettings settings)
     {
+        if (terrain == null)
+        {
+            return;
+        }
+
+        terrain.heightmapPixelError = settings.heightmapPixelError;
+        terrain.basemapDistance = 2000f;
+        terrain.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+    }
+
+    private static float[,] BuildHeightmap(int seed, WorldSettings settings, int resolution)
+    {
+        int blockSize = settings.terrainBlockSize;
+        int blockCount = Mathf.CeilToInt(resolution / (float)blockSize);
+
+        int[,] blockTiers = BuildBlockTierMap(seed, settings, blockCount);
+        EnforceAdjacentTierStepsUntilStable(
+            blockTiers,
+            blockCount,
+            settings.maxTierStep,
+            settings.tierSmoothingPasses);
+        LimitDepressions(blockTiers, blockCount, settings.maxDepressionTiers, settings.lowlandMinTier);
+        EnforceAdjacentTierStepsUntilStable(
+            blockTiers,
+            blockCount,
+            settings.maxTierStep,
+            settings.tierSmoothingPasses);
+
+        float tierScale = 1f / settings.heightTierCount;
         float[,] heights = new float[resolution, resolution];
 
         for (int z = 0; z < resolution; z++)
         {
+            int blockZ = Mathf.Min(z / blockSize, blockCount - 1);
             for (int x = 0; x < resolution; x++)
             {
-                heights[z, x] = SampleNormalizedHeight(settings, x, z, resolution, noiseOffsetX, noiseOffsetZ);
+                int blockX = Mathf.Min(x / blockSize, blockCount - 1);
+                heights[z, x] = blockTiers[blockZ, blockX] * tierScale;
             }
         }
 
         return heights;
     }
 
-    private static float SampleNormalizedHeight(
-        WorldSettings settings,
-        int x,
-        int z,
-        int resolution,
-        float noiseOffsetX,
-        float noiseOffsetZ)
+    private static int[,] BuildBlockTierMap(int seed, WorldSettings settings, int blockCount)
     {
-        float amplitude = 1f;
-        float frequency = 1f;
-        float noiseSum = 0f;
-        float amplitudeSum = 0f;
+        int[,] tiers = new int[blockCount, blockCount];
 
-        for (int octave = 0; octave < settings.octaves; octave++)
+        float regionOffsetX = GetDeterministicNoiseOffset(seed, 301);
+        float regionOffsetZ = GetDeterministicNoiseOffset(seed, 302);
+        float elevationOffsetX = GetDeterministicNoiseOffset(seed, 303);
+        float elevationOffsetZ = GetDeterministicNoiseOffset(seed, 304);
+
+        for (int blockZ = 0; blockZ < blockCount; blockZ++)
         {
-            float sampleX = (x + noiseOffsetX) * settings.noiseScale * frequency;
-            float sampleZ = (z + noiseOffsetZ) * settings.noiseScale * frequency;
+            for (int blockX = 0; blockX < blockCount; blockX++)
+            {
+                float worldX = GetBlockWorldCoordinate(blockX, blockCount, settings.mapSize);
+                float worldZ = GetBlockWorldCoordinate(blockZ, blockCount, settings.mapSize);
 
-            float perlin = Mathf.PerlinNoise(sampleX, sampleZ);
-            noiseSum += perlin * amplitude;
-            amplitudeSum += amplitude;
+                float regionValue = Mathf.PerlinNoise(
+                    worldX * settings.regionNoiseScale + regionOffsetX,
+                    worldZ * settings.regionNoiseScale + regionOffsetZ);
 
-            amplitude *= settings.persistence;
-            frequency *= settings.lacunarity;
+                float elevationValue = Mathf.PerlinNoise(
+                    worldX * settings.elevationNoiseScale + elevationOffsetX,
+                    worldZ * settings.elevationNoiseScale + elevationOffsetZ);
+
+                tiers[blockZ, blockX] = GetTierForRegion(regionValue, elevationValue, settings);
+            }
         }
 
-        float normalized = amplitudeSum > 0f ? noiseSum / amplitudeSum : 0f;
-        return Mathf.Clamp01(normalized * settings.heightMultiplier);
+        return tiers;
+    }
+
+    private static float GetBlockWorldCoordinate(int blockIndex, int blockCount, int mapSize)
+    {
+        return (blockIndex + 0.5f) / blockCount * mapSize;
     }
 
     /// <summary>
-    /// Converts seed + salt into a stable float offset. Same seed always gives the same value.
+    /// Hills rise above flat ground. Lowlands stay flat with no pits.
     /// </summary>
+    private static int GetTierForRegion(float regionValue, float elevationValue, WorldSettings settings)
+    {
+        int flatTier = settings.lowlandMinTier;
+
+        if (regionValue < settings.flatRegionMax)
+        {
+            if (elevationValue > LowlandBumpThreshold &&
+                flatTier < settings.lowlandMaxTier)
+            {
+                return flatTier + 1;
+            }
+
+            return flatTier;
+        }
+
+        if (regionValue > settings.mountainRegionMin)
+        {
+            float mountainBlend = Smooth01(
+                Mathf.InverseLerp(settings.mountainRegionMin, 1f, regionValue));
+            int maxLift = settings.heightTierCount - 1 - flatTier;
+            int lift = Mathf.FloorToInt(elevationValue * (maxLift + 1) * mountainBlend);
+            return flatTier + lift;
+        }
+
+        float hillBlend = Smooth01(Mathf.InverseLerp(
+            settings.flatRegionMax,
+            settings.mountainRegionMin,
+            regionValue));
+        int hillLiftRange = settings.hillMaxTier - flatTier;
+        int hillLift = Mathf.FloorToInt(elevationValue * (hillLiftRange + 1) * hillBlend);
+        return flatTier + hillLift;
+    }
+
+    private static float Smooth01(float value)
+    {
+        value = Mathf.Clamp01(value);
+        return value * value * (3f - 2f * value);
+    }
+
+    /// <summary>
+    /// Stops deep bowl indents while keeping gradual hill slopes.
+    /// </summary>
+    private static void LimitDepressions(int[,] tiers, int size, int maxDepression, int minTier)
+    {
+        if (maxDepression < 1)
+        {
+            return;
+        }
+
+        int[,] buffer = new int[size, size];
+
+        for (int z = 0; z < size; z++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                buffer[z, x] = tiers[z, x];
+            }
+        }
+
+        for (int z = 0; z < size; z++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int neighborAverage = GetNeighborAverage(buffer, x, z, size);
+                int minAllowed = Mathf.Max(minTier, neighborAverage - maxDepression);
+                tiers[z, x] = Mathf.Max(buffer[z, x], minAllowed);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Guarantees adjacent block tiles differ by at most maxStep tiers — blocky stairs, not cliffs.
+    /// </summary>
+    private static void EnforceAdjacentTierStepsUntilStable(
+        int[,] tiers,
+        int size,
+        int maxStep,
+        int maxPasses)
+    {
+        if (maxStep < 1 || maxPasses < 1)
+        {
+            return;
+        }
+
+        for (int pass = 0; pass < maxPasses; pass++)
+        {
+            if (!EnforceAdjacentTierStepPass(tiers, size, maxStep))
+            {
+                break;
+            }
+        }
+    }
+
+    private static bool EnforceAdjacentTierStepPass(int[,] tiers, int size, int maxStep)
+    {
+        int[,] buffer = CopyTierMap(tiers, size);
+        bool changed = false;
+
+        for (int z = 0; z < size; z++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int minAllowed = int.MinValue;
+                int maxAllowed = int.MaxValue;
+
+                for (int offsetZ = -1; offsetZ <= 1; offsetZ++)
+                {
+                    for (int offsetX = -1; offsetX <= 1; offsetX++)
+                    {
+                        if (offsetX == 0 && offsetZ == 0)
+                        {
+                            continue;
+                        }
+
+                        int sampleX = x + offsetX;
+                        int sampleZ = z + offsetZ;
+                        if (sampleX < 0 || sampleZ < 0 || sampleX >= size || sampleZ >= size)
+                        {
+                            continue;
+                        }
+
+                        int neighborTier = buffer[sampleZ, sampleX];
+                        minAllowed = Mathf.Max(minAllowed, neighborTier - maxStep);
+                        maxAllowed = Mathf.Min(maxAllowed, neighborTier + maxStep);
+                    }
+                }
+
+                int clamped = Mathf.Clamp(buffer[z, x], minAllowed, maxAllowed);
+                if (clamped != tiers[z, x])
+                {
+                    changed = true;
+                }
+
+                tiers[z, x] = clamped;
+            }
+        }
+
+        return changed;
+    }
+
+    private static int[,] CopyTierMap(int[,] tiers, int size)
+    {
+        int[,] copy = new int[size, size];
+
+        for (int z = 0; z < size; z++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                copy[z, x] = tiers[z, x];
+            }
+        }
+
+        return copy;
+    }
+
+    private static int GetNeighborAverage(int[,] tiers, int x, int z, int size)
+    {
+        int sum = 0;
+        int count = 0;
+
+        for (int offsetZ = -1; offsetZ <= 1; offsetZ++)
+        {
+            for (int offsetX = -1; offsetX <= 1; offsetX++)
+            {
+                if (offsetX == 0 && offsetZ == 0)
+                {
+                    continue;
+                }
+
+                int sampleX = x + offsetX;
+                int sampleZ = z + offsetZ;
+                if (sampleX < 0 || sampleZ < 0 || sampleX >= size || sampleZ >= size)
+                {
+                    continue;
+                }
+
+                sum += tiers[sampleZ, sampleX];
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            return tiers[z, x];
+        }
+
+        return Mathf.RoundToInt(sum / (float)count);
+    }
+
     private static float GetDeterministicNoiseOffset(int seed, int salt)
     {
         unchecked

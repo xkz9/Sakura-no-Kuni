@@ -1,0 +1,52 @@
+---
+description: Tree forest placement target for Sakura no Kuni — avoid density extremes
+globs: Assets/Scripts/World/EnvironmentGenerator.cs,Assets/Scripts/World/WorldSettings.cs,Assets/ScriptableObjects/World/WorldSettings.asset
+alwaysApply: false
+---
+
+# Forest Placement — Middle Ground Target
+
+When tuning tree placement, **do not swing between extremes**. Adjust in small steps (±0.15 spacing, ±0.05 skip chance).
+
+## Approved baseline (user likes this)
+
+Organic irregular clumps spread across the map — **not** full-map coverage, **not** solid blobs. This is the target look. Tune in small steps only.
+
+1. **Major forests** — 4 organic zones. Each holds **24–30 trees**. Grouped and fairly close with small visible gaps.
+2. **Minor groves** — 5 smaller zones, **6–10 trees** each, sparser than major but still a clump.
+3. **Open-ground accents** — lone singles **and** ~7 two-tree pairs in clear areas between forests.
+4. **Organic shapes** — multi-lobe ellipses + noise edges. Never perfect circles.
+5. **No trunk overlap** — trunk-based collision in forests.
+
+## Default tuning knobs
+
+- `majorForestPackSpacing`: **2.2**
+- `majorForestInteriorSkipChance`: **0.07**
+- `majorForestRadius`: **24**
+- `treesPerMajorForestMin/Max`: **24 / 30**
+- `minorForestPackSpacing`: **4.2**
+- `maxScatteredTreeRatio`: **0.11**
+- `scatteredDuoGroupCount`: **7**
+
+## What to avoid
+
+| Too sparse (wrong) | Too dense (wrong) |
+|---|---|
+| Many lone trees across empty map | Solid overlapping canopy blob |
+| Tiny clusters of 3–5 | Perfect circular stamp |
+| Huge empty areas between zones | Grid fills every cell at 1.85 spacing |
+
+## How to tune from user feedback
+
+- "Too sparse" → lower spacing by **0.15**, lower skip chance by **0.05**, raise trees-per-zone by **2**
+- "Too dense / blobby" → raise spacing by **0.15**, raise skip chance by **0.05**, lower trees-per-zone by **2**
+- Never change spacing by more than **0.3** in one pass
+
+## Do not change
+
+- `StylizedTreeBuilder` tree models unless explicitly asked
+- RTS camera unless explicitly asked
+
+## Test
+
+Play mode **off** → WorldGenerator → ⋮ → **Debug: Generate World (Default Seed)**

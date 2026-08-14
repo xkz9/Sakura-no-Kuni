@@ -16,17 +16,49 @@ MonoBehaviour:
   maxTerrainHeight: 60
   terrainResolution: 513
   defaultSeed: 42
-  noiseScale: 0.01
-  octaves: 4
-  persistence: 0.5
-  lacunarity: 2
-  heightMultiplier: 0.35
+  terrainBlockSize: 7
+  heightTierCount: 16
+  lowlandMinTier: 1
+  lowlandMaxTier: 2
+  hillMinTier: 3
+  hillMaxTier: 9
+  mountainMinTier: 10
+  maxDepressionTiers: 1
+  maxTierStep: 1
+  tierSmoothingPasses: 80
+  heightmapPixelError: 1
+  regionNoiseScale: 0.0009
+  flatRegionMax: 0.48
+  mountainRegionMin: 0.86
+  elevationNoiseScale: 0.003
   castleClearRadius: 30
   expansionRadius: 80
   minBuildableCoverage: 0.6
   searchSampleCount: 150
   maxBuildableSlope: 15
-  treeCount: 80
+  treeCount: 175
+  treeScale: 4
+  majorForestTreeRatio: 0.66
+  minorForestTreeRatio: 0.28
+  maxScatteredTreeRatio: 0.11
+  scatteredDuoGroupCount: 7
+  scatteredDuoSpacing: 3.6
+  majorForestZoneCount: 4
+  treesPerMajorForestMin: 24
+  treesPerMajorForestMax: 30
+  majorForestRadius: 24
+  majorForestPackSpacing: 2.2
+  majorForestTreeGap: 0.18
+  majorForestInteriorSkipChance: 0.07
+  forestShapeNoiseScale: 0.07
+  minorForestZoneCount: 5
+  treesPerMinorForestMin: 6
+  treesPerMinorForestMax: 10
+  minorForestRadius: 15
+  minorForestPackSpacing: 4.2
+  minorForestTreeGap: 0.65
+  forestZoneSeparation: 16
+  scatteredTreeGap: 7
   rockCount: 30
   minEnvironmentSpacing: 4
   environmentSpawnMargin: 10
